@@ -85,9 +85,26 @@ function initServers(){
 }
 
 var meterBk=/Trident.*rv:(\d+\.\d+)/i.test(navigator.userAgent)?"#EAEAEA":"#80808040";
-var dlColor="#6060AA",
-	ulColor="#616161";
+var dlColor="#6060AA";
 var progColor=meterBk;
+
+/**
+ * Determine a gauge color based on the provided speed.
+ * Speeds under 50Mbps transition from blue to green, while
+ * higher speeds move from orange to red.
+ */
+function getColorForSpeed(speed){
+        speed=Number(speed);
+        if(speed<=50){
+                var ratio=speed/50;
+                var g=Math.round(255*ratio);
+                var b=255-g;
+                return "rgb(0,"+g+","+b+")";
+        }
+        var ratio=(speed-50)/50;
+        var g=Math.round(153*(1-ratio));
+        return "rgb(255,"+g+",0)";
+}
 
 //CODE FOR GAUGES
 function drawMeter(c,amount,bk,fg,progress,prog){
@@ -170,13 +187,14 @@ function updateUI(forced){
 	if(!forced&&s.getState()!=3) return;
 	if(uiData==null) return;
 	var status=uiData.testState;
-	I("ip").textContent=uiData.clientIp;
-	I("dlText").textContent=(status==1&&uiData.dlStatus==0)?"...":format(uiData.dlStatus);
-	drawMeter(I("dlMeter"),mbpsToAmount(Number(uiData.dlStatus*(status==1?oscillate():1))),meterBk,dlColor,Number(uiData.dlProgress),progColor);
-	I("ulText").textContent=(status==3&&uiData.ulStatus==0)?"...":format(uiData.ulStatus);
-	drawMeter(I("ulMeter"),mbpsToAmount(Number(uiData.ulStatus*(status==3?oscillate():1))),meterBk,ulColor,Number(uiData.ulProgress),progColor);
-	I("pingText").textContent=format(uiData.pingStatus);
-	I("jitText").textContent=format(uiData.jitterStatus);
+        var dlSpeed=uiData.dlStatus;
+        var ulSpeed=uiData.ulStatus;
+        I("dlText").textContent=(status==1&&dlSpeed==0)?"...":format(dlSpeed);
+        I("ulText").textContent=(status==3&&ulSpeed==0)?"...":format(ulSpeed);
+        I("pingText").textContent=format(uiData.pingStatus);
+        var currentSpeed=(status==1)?dlSpeed:(status==3?ulSpeed:0);
+        I("speedValue").textContent=currentSpeed?format(currentSpeed):"";
+        drawMeter(I("dlMeter"),mbpsToAmount(Number(currentSpeed*(status==1||status==3?oscillate():1))),meterBk,getColorForSpeed(currentSpeed),(status==1)?Number(uiData.dlProgress):Number(uiData.ulProgress),progColor);
 }
 function oscillate(){
 	return 1+0.02*Math.sin(Date.now()/100);
@@ -190,33 +208,59 @@ function frame(){
 frame(); //start frame loop
 //function to (re)initialize UI
 function initUI(){
-	drawMeter(I("dlMeter"),0,meterBk,dlColor,0);
-	drawMeter(I("ulMeter"),0,meterBk,ulColor,0);
-	I("dlText").textContent="";
-	I("ulText").textContent="";
-	I("pingText").textContent="";
-	I("jitText").textContent="";
-	I("ip").textContent="";
+        drawMeter(I("dlMeter"),0,meterBk,dlColor,0);
+        I("dlText").textContent="";
+        I("ulText").textContent="";
+        I("pingText").textContent="";
+        I("speedValue").textContent="";
 }
 </script>
 <style type="text/css">
-	html,body{
-		border:none; padding:0; margin:0;
-		background:#FFFFFF;
-		color:#202020;
-	}
-	body{
-		text-align:center;
-		font-family:"Roboto",sans-serif;
-	}
-	h1{
-		color:#404040;
-	}
-	#loading{
-		background-color:#FFFFFF;
-		color:#404040;
-		text-align:center;
-	}
+        html,body{
+                border:none; padding:0; margin:0;
+                background:linear-gradient(180deg,#1e1e2f 0%,#0d0d15 100%);
+                color:#E0E0FF;
+        }
+        body{
+                text-align:center;
+                font-family:"Roboto",sans-serif;
+        }
+        h1{
+                color:#404040;
+        }
+        #topStats{
+                display:flex;
+                justify-content:space-between;
+                padding:1em;
+                text-transform:uppercase;
+        }
+        #topStats .stat{
+                flex:1;
+                text-align:center;
+        }
+        #topStats .value{
+                display:block;
+                font-size:1.5em;
+        }
+        #meterSection{
+                position:relative;
+                width:20em;
+                height:10em;
+                margin:2em auto;
+        }
+        #speedValue{
+                position:absolute;
+                bottom:0.5em;
+                width:100%;
+                text-align:center;
+                font-size:2em;
+        }
+        #ulMeter{display:none;}
+        #loading{
+                background-color:rgba(0,0,0,0);
+                color:#E0E0FF;
+                text-align:center;
+        }
 	span.loadCircle{
 		display:inline-block;
 		width:2em;
@@ -400,77 +444,72 @@ function initUI(){
 			opacity:0;
 		}
 	}
-	@media all and (prefers-color-scheme: dark){
-		html,body,#loading{
-			background:#202020;
-			color:#F4F4F4;
-			color-scheme:dark;
-		}
-		h1{
-			color:#E0E0E0;
-		}
-		a{
-			color:#9090FF;
-		}
-		#privacyPolicy{
-			background:#000000;
-		}
-		#resultsImg{
-			filter: invert(1);
-		}
-	}
+        @media all and (prefers-color-scheme: dark){
+                html,body,#loading{
+                        background:linear-gradient(180deg,#1e1e2f 0%,#0d0d15 100%);
+                        color:#F4F4F4;
+                        color-scheme:dark;
+                }
+                h1{
+                        color:#E0E0E0;
+                }
+                a{
+                        color:#9090FF;
+                }
+                #privacyPolicy{
+                        background:#000000;
+                }
+                #resultsImg{
+                        filter: invert(1);
+                }
+        }
 </style>
 <title>LibreSpeed</title>
 </head>
 <body onload="initServers()">
-<h1>LibreSpeed</h1>
 <div id="loading" class="visible">
-	<p id="message"><span class="loadCircle"></span>Selecting a server...</p>
+        <p id="message"><span class="loadCircle"></span>Selecting a server...</p>
 </div>
 <div id="testWrapper" class="hidden">
-	<div id="startStopBtn" onclick="startStop()"></div><br/>
-	<a class="privacy" href="#" onclick="I('privacyPolicy').style.display=''">Privacy</a>
-	<div id="serverArea">
-		Server: <select id="server" onchange="s.setSelectedServer(SPEEDTEST_SERVERS[this.value])"></select>
-	</div>
-	<div id="test">
-		<div class="testGroup">
-            <div class="testArea2">
-				<div class="testName">Ping</div>
-				<div id="pingText" class="meterText" style="color:#AA6060"></div>
-				<div class="unit">ms</div>
-			</div>
-			<div class="testArea2">
-				<div class="testName">Jitter</div>
-				<div id="jitText" class="meterText" style="color:#AA6060"></div>
-				<div class="unit">ms</div>
-			</div>
-		</div>
-		<div class="testGroup">
-			<div class="testArea">
-				<div class="testName">Download</div>
-				<canvas id="dlMeter" class="meter"></canvas>
-				<div id="dlText" class="meterText"></div>
-				<div class="unit">Mbit/s</div>
-			</div>
-			<div class="testArea">
-				<div class="testName">Upload</div>
-				<canvas id="ulMeter" class="meter"></canvas>
-				<div id="ulText" class="meterText"></div>
-				<div class="unit">Mbit/s</div>
-			</div>
-		</div>
-		<div id="ipArea">
-			<span id="ip"></span>
-		</div>
-		<div id="shareArea" style="display:none">
-			<h3>Share results</h3>
-			<p>Test ID: <span id="testId"></span></p>
-			<input type="text" value="" id="resultsURL" readonly="readonly" onclick="this.select();this.focus();this.select();document.execCommand('copy');alert('Link copied')"/>
-			<img src="" id="resultsImg" />
-		</div>
-	</div>
-	<a href="https://github.com/librespeed/speedtest">Source code</a>
+        <div id="topStats">
+                <div class="stat">
+                        <span class="icon">&#x21bb;</span>
+                        <span class="label">PING</span>
+                        <span id="pingText" class="value"></span>
+                        <span class="unit">ms</span>
+                </div>
+                <div class="stat">
+                        <span class="icon">&#x2193;</span>
+                        <span class="label">DOWNLOAD SPEED</span>
+                        <span id="dlText" class="value"></span>
+                        <span class="unit">Mbps</span>
+                </div>
+                <div class="stat">
+                        <span class="icon">&#x2191;</span>
+                        <span class="label">UPLOAD SPEED</span>
+                        <span id="ulText" class="value"></span>
+                        <span class="unit">Mbps</span>
+                </div>
+        </div>
+        <div id="meterSection">
+                <canvas id="dlMeter" class="meter"></canvas>
+                <div id="speedValue" class="meterText"></div>
+                <div class="unit">Mbps</div>
+        </div>
+        <div id="controls">
+                <div id="startStopBtn" onclick="startStop()"></div>
+                <div id="serverArea">
+                        Server: <select id="server" onchange="s.setSelectedServer(SPEEDTEST_SERVERS[this.value])"></select>
+                </div>
+                <a class="privacy" href="#" onclick="I('privacyPolicy').style.display=''">Privacy</a>
+        </div>
+        <div id="shareArea" style="display:none">
+                <h3>Share results</h3>
+                <p>Test ID: <span id="testId"></span></p>
+                <input type="text" value="" id="resultsURL" readonly="readonly" onclick="this.select();this.focus();this.select();document.execCommand('copy');alert('Link copied')"/>
+                <img src="" id="resultsImg" />
+        </div>
+        <a href="https://github.com/librespeed/speedtest">Source code</a>
 </div>
 <div id="privacyPolicy" style="display:none">
     <h2>Privacy Policy</h2>

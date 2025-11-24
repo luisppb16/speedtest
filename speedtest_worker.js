@@ -434,7 +434,15 @@ function ulTest(done) {
 	const maxInt = Math.pow(2, 32) - 1;
 	try {
 		r = new Uint32Array(r);
-		for (let i = 0; i < r.length; i++) r[i] = Math.random() * maxInt;
+		if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+			const chunkSize = 65536;
+			for (let i = 0; i < r.length; i += chunkSize / 4) {
+				const subarray = r.subarray(i, Math.min(r.length, i + chunkSize / 4));
+				crypto.getRandomValues(subarray);
+			}
+		} else {
+			for (let i = 0; i < r.length; i++) r[i] = Math.random() * maxInt;
+		}
 	} catch (e) {}
 	let req = [];
 	let reqsmall = [];
@@ -443,7 +451,15 @@ function ulTest(done) {
 	r = new ArrayBuffer(262144);
 	try {
 		r = new Uint32Array(r);
-		for (let i = 0; i < r.length; i++) r[i] = Math.random() * maxInt;
+		if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+			const chunkSize = 65536;
+			for (let i = 0; i < r.length; i += chunkSize / 4) {
+				const subarray = r.subarray(i, Math.min(r.length, i + chunkSize / 4));
+				crypto.getRandomValues(subarray);
+			}
+		} else {
+			for (let i = 0; i < r.length; i++) r[i] = Math.random() * maxInt;
+		}
 	} catch (e) {}
 	reqsmall.push(r);
 	reqsmall = new Blob(reqsmall);

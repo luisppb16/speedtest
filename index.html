@@ -118,19 +118,100 @@ function drawMeter(c,amount,bk,fg,progress,prog){
 		c.width=cw;
 		c.height=ch;
 	}
+
+	// Constants for positioning
+	var centerX = c.width/2;
+	var centerY = c.height - 40*sizScale;
+	var radius = c.height/1.5 - 20*sizScale;
+	var startAngle = -Math.PI * 1.1; // Starts a bit further left
+	var endAngle = Math.PI * 0.1;   // Ends a bit further right
+	var totalAngle = endAngle - startAngle;
+
+	// Background Gauge (Darker Arc)
 	ctx.beginPath();
-	ctx.strokeStyle=bk;
-	ctx.lineWidth=12*sizScale;
-	ctx.arc(c.width/2,c.height-58*sizScale,c.height/1.8-ctx.lineWidth,-Math.PI*1.1,Math.PI*0.1);
+	ctx.strokeStyle = "rgba(30, 30, 40, 0.8)";
+	ctx.lineWidth = 20 * sizScale;
+	ctx.lineCap = "round";
+	ctx.arc(centerX, centerY, radius, startAngle, endAngle);
 	ctx.stroke();
+
+	// Ticks and Labels
+	ctx.save();
+	ctx.translate(centerX, centerY);
+	ctx.fillStyle = "#a0a0ff";
+	ctx.font = (12 * sizScale) + "px 'Roboto Mono', monospace";
+	ctx.textAlign = "center";
+	ctx.textBaseline = "middle";
+
+	for (var i = 0; i <= 10; i++) {
+		var angle = startAngle + (totalAngle * (i / 10));
+		var tickRadius = radius - 20 * sizScale;
+		var x = Math.cos(angle) * tickRadius;
+		var y = Math.sin(angle) * tickRadius;
+		var xOuter = Math.cos(angle) * (radius + 5 * sizScale);
+		var yOuter = Math.sin(angle) * (radius + 5 * sizScale);
+
+		// Draw tick
+		ctx.beginPath();
+		ctx.strokeStyle = "#404060";
+		ctx.lineWidth = 2 * sizScale;
+		ctx.moveTo(x, y);
+		ctx.lineTo(xOuter, yOuter);
+		ctx.stroke();
+	}
+	ctx.restore();
+
+	// Progress Arc (3D Effect)
+	var grad = ctx.createLinearGradient(0, 0, c.width, 0);
+	grad.addColorStop(0, "#00ffcc");
+	grad.addColorStop(0.5, "#00aaff");
+	grad.addColorStop(1, "#3300ff");
+
 	ctx.beginPath();
-	ctx.strokeStyle=fg;
-	ctx.lineWidth=12*sizScale;
-	ctx.arc(c.width/2,c.height-58*sizScale,c.height/1.8-ctx.lineWidth,-Math.PI*1.1,amount*Math.PI*1.2-Math.PI*1.1);
+	ctx.strokeStyle = grad;
+	ctx.lineWidth = 20 * sizScale;
+	ctx.lineCap = "round";
+	ctx.shadowBlur = 15 * sizScale;
+	ctx.shadowColor = "#00aaff";
+	// Draw up to the amount
+	var currentEndAngle = startAngle + (totalAngle * amount);
+	ctx.arc(centerX, centerY, radius, startAngle, currentEndAngle);
 	ctx.stroke();
+	ctx.shadowBlur = 0; // Reset shadow
+
+	// Needle
+	var needleAngle = startAngle + (totalAngle * amount);
+	var needleLen = radius + 10 * sizScale;
+
+	ctx.save();
+	ctx.translate(centerX, centerY);
+	ctx.rotate(needleAngle);
+
+	// Needle shape
+	ctx.beginPath();
+	ctx.moveTo(0, -5 * sizScale);
+	ctx.lineTo(needleLen, 0);
+	ctx.lineTo(0, 5 * sizScale);
+	ctx.fillStyle = "#ffffff";
+	ctx.shadowBlur = 5 * sizScale;
+	ctx.shadowColor = "#ffffff";
+	ctx.fill();
+
+	// Central Cap
+	ctx.beginPath();
+	ctx.arc(0, 0, 10 * sizScale, 0, Math.PI * 2);
+	ctx.fillStyle = "#e0e0e0";
+	ctx.fill();
+
+	ctx.restore();
+
+	// Progress Bar (Bottom)
 	if(typeof progress !== "undefined"){
-		ctx.fillStyle=prog;
-		ctx.fillRect(c.width*0.3,c.height-16*sizScale,c.width*0.4*progress,4*sizScale);
+		ctx.fillStyle = "#333344";
+		ctx.fillRect(c.width*0.25, c.height - 10*sizScale, c.width*0.5, 6*sizScale);
+
+		ctx.fillStyle = "#00aaff";
+		ctx.fillRect(c.width*0.25, c.height - 10*sizScale, c.width*0.5*progress, 6*sizScale);
 	}
 }
 function mbpsToAmount(s){
